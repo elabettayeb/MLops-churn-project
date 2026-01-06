@@ -1,6 +1,6 @@
-# Telecom Churn MLOps Pipeline: Implementation Guide
+# MLops-churn-project: Implementation Guide
 
-This guide details the step-by-step construction of a production-grade MLOps pipeline adapted for the Telecom Churn dataset.
+This guide details the step-by-step construction of a production-grade MLOps pipeline for a Telecom Churn dataset (project name: MLops-churn-project).
 
 ## Table of Contents
 
@@ -30,17 +30,17 @@ pip install -r requirements.txt
 
 DVC is used to track three versions of the dataset.
 
-- **V1 (Raw)**: `data/raw/train.csv` (Original dataset).
-- **V2 (Cleaned)**: Handled missing values and encoding.
-- **V3 (Enhanced)**: Feature engineering + Class balancing.
+- **V1 (Raw)**: `data/raw/telecom_churn.csv` (Original dataset).
+- **V2 (Cleaned)**: `data/interim/cleaned_churn.csv`.
+- **V3 (Enhanced)**: `data/processed/final_churn.csv` (engineered features + class balancing).
 
 ```bash
 # Initialize DVC
 dvc init
 
 # Track V1
-dvc add data/raw/train.csv
-git add data/raw/train.csv.dvc
+dvc add data/raw/telecom_churn.csv
+git add data/raw/telecom_churn.csv.dvc
 ```
 
 ## 3. Experiment Tracking with MLflow
@@ -63,15 +63,15 @@ The `dvc.yaml` file orchestrates the workflow.
 stages:
   clean_data:
     cmd: python src/clean_data.py
-    deps: [data/raw/train.csv, src/clean_data.py]
-    outs: [data/interim/cleaned_train.csv]
+    deps: [data/raw/telecom_churn.csv, src/clean_data.py]
+    outs: [data/interim/cleaned_churn.csv]
   feature_engineering:
     cmd: python src/feature_engineering.py
-    deps: [data/interim/cleaned_train.csv]
-    outs: [data/processed/final_train.csv]
+    deps: [data/interim/cleaned_churn.csv]
+    outs: [data/processed/final_churn.csv]
   training:
     cmd: python src/train.py
-    deps: [data/processed/final_train.csv, src/train.py]
+    deps: [data/processed/final_churn.csv, src/train.py]
   registration:
     cmd: python src/register_model.py
     deps: [src/register_model.py]

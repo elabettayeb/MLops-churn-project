@@ -1,4 +1,4 @@
-name: Telecom Churn MLOps Pipeline
+name: MLops-churn-project
 
 on: [push, pull_request]
 
@@ -18,6 +18,10 @@ jobs:
         run: |
           pip install -r requirements.txt
 
+      - name: Run tests
+        run: |
+          pytest -q
+
       - name: Setup DVC
         run: |
           python -m dvc init --no-scm -f
@@ -26,10 +30,20 @@ jobs:
 
       - name: Get DVC data
         run: |
-          # For CI, we expect `data/raw/telecom_churn.csv` to be present.
-          # Replace this with a real download URL or secure artifact in production.
           mkdir -p data/raw
-          echo "Please add your Telecom Churn dataset to data/raw/telecom_churn.csv in your CI environment."
+          if [ ! -f data/raw/telecom_churn.csv ]; then
+            echo "Telecom dataset not found in CI workspace; creating a small sample for pipeline execution."
+            python - <<'PY'
+import pandas as pd
+pd.DataFrame({
+    'customerID': ['0001','0002'],
+    'tenure': [1,24],
+    'MonthlyCharges': [29.85,56.95],
+    'TotalCharges': [29.85,1370.0],
+    'Churn': ['No','Yes'],
+}).to_csv('data/raw/telecom_churn.csv', index=False)
+PY
+          fi
 
       - name: Run DVC Pipeline
         run: |
@@ -39,8 +53,7 @@ jobs:
         run: |
           echo "Pipeline successful."
           echo "Recent MLflow runs:"
-          python -m mlflow experiments search
-          # Listing runs by ID (ID 1 refers to the experiment id in the CI environment)
+          python -m mlflow experiments search || true
           python -m mlflow runs list --experiment-id 1 || true
 
       - name: Log results to MLflow

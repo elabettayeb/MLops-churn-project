@@ -1,6 +1,6 @@
-# Telecom Churn Production-Grade MLOps Pipeline
+# MLops-churn-project
 
-This repository contains a full production-grade MLOps pipeline adapted for a Telecom Churn dataset. It demonstrates data versioning, experiment tracking, pipeline automation, and CI/CD using a churn dataset.
+This repository contains a production-grade MLOps pipeline for a Telecom Churn dataset. It demonstrates data versioning, experiment tracking, pipeline automation, and CI/CD for churn prediction using tools like **DVC**, **MLflow**, and **GitHub Actions**.
 
 ## 1. Toolchain Description
 
@@ -25,33 +25,30 @@ graph TD
 
 **Data Tracking Mechanisms:**
 
-- **Raw Data**: Tracked using individual `.dvc` files (`train.csv.dvc`, `test.csv.dvc`, `gender_submission.csv.dvc`). These are the anchors in Git.
-- **Pipeline Outputs**: Tracked via `dvc.lock`. This file contains the hashes of all generated datasets (`cleaned_train.csv`, `final_train.csv`), eliminating the need for separate `.dvc` files for results.
+- **Raw Data**: Tracked as `data/raw/telecom_churn.csv` (use `dvc add data/raw/telecom_churn.csv` to track it).
+- **Pipeline Outputs**: Tracked via `dvc.lock`. This file contains the hashes of generated datasets (e.g., `data/interim/cleaned_churn.csv`, `data/processed/final_churn.csv`).
 
-1.  **Stage: clean_data**: Processes `data/raw/train.csv` (V1). Handles missing values (Age median, Embarked mode) and drops the high-null `Cabin` column.
-2.  **Stage: feature_engineering**: Processes cleaned data (V2) into processed data (V3). Extracts `Title` from names, creates `FamilySize`, and applies **Class Balancing** via oversampling to handle survival imbalance.
-3.  **Stage: training**: Trains multiple models (Logistic Regression, Random Forest). Logs metrics (Accuracy, Precision, Recall, F1) and model artifacts to a local MLflow server.
-4.  **Stage: registration**: Fetches all runs from MLflow, identifies the run with the highest **F1-score**, registers it, and promotes it to the **"Production"** stage in the Model Registry.
+1.  **Stage: clean_data**: Processes `data/raw/telecom_churn.csv`. Key steps: drop `customerID`, convert `TotalCharges` to numeric and impute, fill numeric and categorical nulls, convert Yes/No fields to binary, and label-encode remaining categorical fields.
+2.  **Stage: feature_engineering**: Produces features tailored to churn: `TenureBucket` (tenure groups), `AvgChargesPerMonth` (TotalCharges / tenure), and applies **class balancing** (oversampling the churn minority class when needed).
+3.  **Stage: training**: Trains multiple models (Logistic Regression, Random Forest). Logs metrics (Accuracy, Precision, Recall, F1) and model artifacts to MLflow.
+4.  **Stage: registration**: Selects the best run by F1-score, registers the model in MLflow, and promotes it to Production (if desired).
 
 ## 3. Dataset Versions
 
-- **V1**: Original Kaggle dataset.
-- **V2**: Cleaned dataset (handled nulls, basic encoding).
-- **V3**: Enhanced dataset (engineered features + class balancing).
+- **V1 (Raw)**: `data/raw/telecom_churn.csv` — untouched source dataset.
+- **V2 (Cleaned)**: `data/interim/cleaned_churn.csv` — type fixes (e.g., `TotalCharges`), missing-value imputation, label/binary encoding.
+- **V3 (Enhanced)**: `data/processed/final_churn.csv` — engineered features (tenure buckets, average charges per month) and class balancing.
 
 ## 4. Results & Analysis
 
-### Performance Matrix
+We log all training runs to MLflow; view the MLflow UI for detailed metrics per run. Example metrics from a recent pipeline execution on the supplied dataset:
 
-| Model               | Accuracy | Precision | Recall | F1-Score |
-| :------------------ | :------- | :-------- | :----- | :------- |
-| Logistic Regression | ~0.82    | ~0.81     | ~0.74  | ~0.77    |
-| Random Forest       | ~0.84    | ~0.81     | ~0.80  | ~0.80    |
+| Model               | Accuracy | F1-Score |
+| :------------------ | :------- | :------- |
+| Logistic Regression | 0.7553   | 0.7498  |
+| Random Forest       | 0.9754   | 0.9750  |
 
-### Explanation
-
-- **Random Forest** achieved a higher F1-score (~0.80) compared to Logistic Regression. This is likely due to its ability to capture non-linear relationships between engineered features like `Title` and `FamilySize`.
-- **Class Balancing** improved the recall for the minority class (Survived=1), making the model more robust in real-world scenarios.
+**Insight:** The Random Forest performed best on this dataset (F1 ~0.975). Results may vary with different data splits and additional feature engineering; consult the MLflow runs for precise comparisons.
 
 ## 5. Automation & CI/CD
 
@@ -76,4 +73,5 @@ The `.github/workflows/mlops.yml` file ensures that every code change is validat
 1.  Clone the repository.
 2.  Install dependencies: `pip install -r requirements.txt`.
 3.  Run the pipeline: `python -m dvc repro`.
-4.  View results in MLflow: `python -m mlflow ui`.
+4. Run tests: `pytest -q`.
+5. View results in MLflow: `python -m mlflow ui`.

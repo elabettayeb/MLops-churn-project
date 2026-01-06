@@ -1,0 +1,15 @@
+cmd: python src/clean_data.py
+deps:
+- path: data/raw/telecom_churn.csv
+  hash: md5
+  md5: a393dbb47c15a7fd088366ae627926b4
+  size: 128828
+- path: src/clean_data.py
+  hash: md5
+  md5: 24901529d600beec2b1c40f670a80d55
+  size: 1840
+outs:
+- path: data/interim/cleaned_churn.csv
+  hash: md5
+  md5: cf6df5d03157de191f4bef0f6f227e2e
+  size: 144566

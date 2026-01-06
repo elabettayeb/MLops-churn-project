@@ -1,8 +1,8 @@
-# Project Review: Telecom Churn Production MLOps Pipeline
+# Project Review: MLops-churn-project
 
 ## 1. Executive Summary
 
-This project demonstrates the implementation of a production-grade MLOps pipeline for the Telecom Churn dataset. By integrating **Git, DVC, MLflow, and GitHub Actions**, we have built a system that ensures full reproducibility, automated experiment tracking, and zero-touch model deployment.
+This project demonstrates a production-grade MLOps pipeline for Telecom Churn prediction. By integrating **Git, DVC, MLflow, and GitHub Actions**, the system ensures reproducibility, experiment tracking, and automated model selection and registration.
 
 ---
 
@@ -37,14 +37,9 @@ We implemented a multi-stage data evolution tracked exclusively by **DVC**.
 
 ### Versioning Breakdown:
 
-- **V1: Raw Dataset**: Original Kaggle data. No preprocessing.
-- **V2: Cleaned Dataset**:
-  - Implemented median imputation for `Age`.
-  - Handled categorical encoding for `Sex` and `Embarked`.
-  - Dropped metadata with low predictive power (e.g., `Cabin`).
-- **V3: Robust Feature Engineering**:
-  - **Feature Extraction**: Derived `Title` (Mr, Mrs, etc.) and `FamilySize`.
-  - **Class Balancing**: Applied oversampling to the minority class (Survived=1) to address class imbalance, improving the model's sensitivity to survival patterns.
+- **V1 (Raw)**: `data/raw/telecom_churn.csv` — raw source.
+- **V2 (Cleaned)**: `data/interim/cleaned_churn.csv` — type fixes, `TotalCharges` conversion, numeric/categorical imputation, binary mapping.
+- **V3 (Enhanced)**: `data/processed/final_churn.csv` — features like `TenureBucket`, `AvgChargesPerMonth`, and class balancing for `Churn`.
 
 ---
 
@@ -54,16 +49,14 @@ We evaluated two distinct classification strategies, logging all metadata into *
 
 ### Results Comparison
 
-| Metric        | Logistic Regression (Baseline) | Random Forest (Winner) |
-| :------------ | :----------------------------- | :--------------------- |
-| **Accuracy**  | 0.82                           | **0.84**               |
-| **F1-Score**  | 0.77                           | **0.80**               |
-| **Precision** | 0.81                           | 0.81                   |
-| **Recall**    | 0.74                           | **0.80**               |
+| Model               | Accuracy | F1-Score |
+| :------------------ | :------- | :------- |
+| Logistic Regression | 0.7553   | 0.7498   |
+| Random Forest       | 0.9754   | 0.9750   |
 
 ### Critical Insight:
 
-The **Random Forest** model significantly outperformed Logistic Regression in **Recall** (0.80 vs 0.74). This improvement is attributed to the model's ability to handle the non-linear interaction between our new engineered features (`Title`, `IsAlone`) and the balanced target variable.
+The Random Forest performed best for this dataset (F1 ~0.975). This is likely due to its ability to capture non-linear relationships in engineered features such as `AvgChargesPerMonth` and `TenureBucket`. Consult MLflow for per-run details and additional comparisons.
 
 ---
 
