@@ -1,0 +1,11 @@
+cmd: python src/feature_engineering.py
+deps:
+- path: data/interim/cleaned_churn.csv
+  hash: md5
+  md5: cf6df5d03157de191f4bef0f6f227e2e
+  size: 144566
+outs:
+- path: data/processed/final_churn.csv
+  hash: md5
+  md5: ee9272bc5c07c199289c6abbf1d76f57
+  size: 247390

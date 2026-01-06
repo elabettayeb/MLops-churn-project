@@ -1,0 +1,35 @@
+schema: '2.0'
+stages:
+  clean_data:
+    cmd: python src/clean_data.py
+    deps:
+    - path: data/raw/telecom_churn.csv
+      hash: md5
+      md5: a393dbb47c15a7fd088366ae627926b4
+      size: 128828
+    outs:
+    - path: data/interim/cleaned_churn.csv
+      hash: md5
+      md5: cf6df5d03157de191f4bef0f6f227e2e
+      size: 144566
+  feature_engineering:
+    cmd: python src/feature_engineering.py
+    deps:
+    - path: data/interim/cleaned_churn.csv
+      hash: md5
+      md5: cf6df5d03157de191f4bef0f6f227e2e
+      size: 144566
+    outs:
+    - path: data/processed/final_churn.csv
+      hash: md5
+      md5: ee9272bc5c07c199289c6abbf1d76f57
+      size: 247390
+  training:
+    cmd: python src/train.py
+    deps:
+    - path: data/processed/final_churn.csv
+      hash: md5
+      md5: ee9272bc5c07c199289c6abbf1d76f57
+      size: 247390
+  registration:
+    cmd: python src/register_model.py
