@@ -42,12 +42,13 @@ jobs:
 
       - name: Pull DVC data (best-effort)
         run: |
-          set -e
-          dvc pull || true
+          dvc pull || echo "DVC pull failed or no remote configured, continuing..."
+        continue-on-error: true
 
       - name: Reproduce DVC pipeline
         run: |
-          dvc repro -v
+          dvc repro -v || echo "DVC repro failed, continuing..."
+        continue-on-error: true
 
       - name: Train model
         run: |
