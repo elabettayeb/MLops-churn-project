@@ -35,10 +35,16 @@ jobs:
           pip install "dvc[s3]"
 
       - name: (Optional) Configure DVC remote from secret
-        if: ${{ secrets.DVC_REMOTE_URL != '' }}
+        env:
+          DVC_REMOTE_URL: ${{ secrets.DVC_REMOTE_URL }}
         run: |
-          dvc remote add -f origin ${{ secrets.DVC_REMOTE_URL }} || true
-          echo "Configured DVC remote (if required)."
+          if [ -n "$DVC_REMOTE_URL" ]; then
+            dvc remote add -f origin "$DVC_REMOTE_URL" || true
+            echo "Configured DVC remote"
+          else
+            echo "No DVC remote configured, skipping"
+          fi
+        continue-on-error: true
 
       - name: Pull DVC data (best-effort)
         run: |
