@@ -65,29 +65,30 @@ jobs:
       - name: Export MLflow metrics summary
         if: always()
         run: |
-          python - <<'PY'
-import os, json
-root='mlruns'
-summaries=[]
-if os.path.isdir(root):
-    # mlruns/<exp_id>/<run_id>/metrics/<metric_name> files
-    for exp in os.listdir(root):
-        exp_dir=os.path.join(root, exp)
-        if not os.path.isdir(exp_dir):
-            continue
-        for run_id in os.listdir(exp_dir):
-            run_dir=os.path.join(exp_dir, run_id)
-            mdir=os.path.join(run_dir, 'metrics')
-            if os.path.isdir(mdir):
-                metrics={}
-                for fname in os.listdir(mdir):
-                    fpath=os.path.join(mdir, fname)
-                    with open(fpath) as f:
-                        vals=[line.split()[0] for line in f.read().splitlines() if line.strip()]
-                        metrics[fname]=[float(v) for v in vals]
-                summaries.append({'exp':exp, 'run': run_id, 'metrics': metrics})
-open('mlflow_metrics_summary.json','w').write(json.dumps(summaries, indent=2))
-PY
+          python -c "
+          import os, json
+          root='mlruns'
+          summaries=[]
+          if os.path.isdir(root):
+              for exp in os.listdir(root):
+                  exp_dir=os.path.join(root, exp)
+                  if not os.path.isdir(exp_dir):
+                      continue
+                  for run_id in os.listdir(exp_dir):
+                      run_dir=os.path.join(exp_dir, run_id)
+                      mdir=os.path.join(run_dir, 'metrics')
+                      if os.path.isdir(mdir):
+                          metrics={}
+                          for fname in os.listdir(mdir):
+                              fpath=os.path.join(mdir, fname)
+                              with open(fpath) as f:
+                                  vals=[line.split()[0] for line in f.read().splitlines() if line.strip()]
+                                  metrics[fname]=[float(v) for v in vals]
+                          summaries.append({'exp':exp, 'run': run_id, 'metrics': metrics})
+          with open('mlflow_metrics_summary.json','w') as f:
+              f.write(json.dumps(summaries, indent=2))
+          "
+        continue-on-error: true
 
       - name: Upload MLflow runs
         if: always()
