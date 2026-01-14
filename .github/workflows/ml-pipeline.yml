@@ -1,0 +1,106 @@
+name: MLOps Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # Ensure DVC is available (add extras for your remote type if needed)
+          pip install "dvc[s3]"
+
+      - name: (Optional) Configure DVC remote from secret
+        if: ${{ secrets.DVC_REMOTE_URL != '' }}
+        run: |
+          dvc remote add -f origin ${{ secrets.DVC_REMOTE_URL }} || true
+          echo "Configured DVC remote (if required)."
+
+      - name: Pull DVC data (best-effort)
+        run: |
+          set -e
+          dvc pull || true
+
+      - name: Reproduce DVC pipeline
+        run: |
+          dvc repro -v
+
+      - name: Run tests
+        run: |
+          pytest -q
+
+      - name: Export MLflow metrics summary
+        if: always()
+        run: |
+          python - <<'PY'
+import os, json
+root='mlruns'
+summaries=[]
+if os.path.isdir(root):
+    # mlruns/<exp_id>/<run_id>/metrics/<metric_name> files
+    for exp in os.listdir(root):
+        exp_dir=os.path.join(root, exp)
+        if not os.path.isdir(exp_dir):
+            continue
+        for run_id in os.listdir(exp_dir):
+            run_dir=os.path.join(exp_dir, run_id)
+            mdir=os.path.join(run_dir, 'metrics')
+            if os.path.isdir(mdir):
+                metrics={}
+                for fname in os.listdir(mdir):
+                    fpath=os.path.join(mdir, fname)
+                    with open(fpath) as f:
+                        vals=[line.split()[0] for line in f.read().splitlines() if line.strip()]
+                        metrics[fname]=[float(v) for v in vals]
+                summaries.append({'exp':exp, 'run': run_id, 'metrics': metrics})
+open('mlflow_metrics_summary.json','w').write(json.dumps(summaries, indent=2))
+PY
+
+      - name: Upload MLflow runs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlflow-runs
+          path: |
+            mlruns
+            mlflow_metrics_summary.json
+
+      - name: Package DVC cache (optional)
+        if: always()
+        run: |
+          if [ -d ".dvc/cache" ]; then
+            tar -czf dvc-cache.tgz .dvc/cache
+          else
+            touch dvc-cache.tgz
+          fi
+
+      - name: Upload DVC cache artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dvc-cache
+          path: dvc-cache.tgz
