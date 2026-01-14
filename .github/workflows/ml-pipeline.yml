@@ -49,6 +49,14 @@ jobs:
         run: |
           dvc repro -v
 
+      - name: Train model
+        run: |
+          python src/train.py
+
+      - name: Register model
+        run: |
+          python src/register_model.py
+
       - name: Run tests
         run: |
           pytest -q
